@@ -150,8 +150,11 @@ RUN mkdir /var/run/dbus && \
   locale-gen ja_JP.UTF-8 && \
   rm -rf /etc/xrdp/rsakeys.ini /etc/xrdp/*.pem
 
+# reference:
+# apt-get update' returned a non-zero code: 100
+# https://stackoverflow.com/questions/38002543/apt-get-update-returned-a-non-zero-code-100
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - 
-RUN apt-get update -q && \
+RUN apt-get update -q && apt-get install -y apt-transport-https && \
     apt-get upgrade -yq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq wget curl git g++ build-essential vim sudo lsb-release locales bash-completion tzdata gosu && \
     rm -rf /var/lib/apt/lists/*
