@@ -1,14 +1,18 @@
 ################################################################################
 # base system
+# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+# https://hub.docker.com/r/nvidia/cuda/
 ################################################################################
 
-FROM ubuntu:20.04 as system
+#FROM ubuntu:20.04 as system
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu20.04 as system
 
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
 
 # built-in packages
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt update \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https \
     && apt install -y --no-install-recommends software-properties-common curl apache2-utils \
     && apt update \
     && apt install -y --no-install-recommends --allow-unauthenticated \
@@ -20,7 +24,8 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 
 # install debs error if combine together
-RUN apt update \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https \
     && apt install -y --no-install-recommends --allow-unauthenticated \
         xvfb x11vnc \
         vim-tiny firefox ttf-ubuntu-font-family ttf-wqy-zenhei  \
@@ -28,7 +33,8 @@ RUN apt update \
     && apt autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt update \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https \
     && apt install -y --no-install-recommends --allow-unauthenticated \
         lxde gtk2-engines-murrine gnome-themes-standard gtk2-engines-pixbuf gtk2-engines-murrine arc-theme \
     && apt autoclean -y \
@@ -42,7 +48,8 @@ RUN chmod +x /bin/tini
 
 # python library
 COPY rootfs/usr/local/lib/web/backend/requirements.txt /tmp/
-RUN apt-get update \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https \
     && dpkg-query -W -f='${Package}\n' > /tmp/a.txt \
     && apt-get install -y python3-pip python3-dev build-essential \
 	&& pip3 install setuptools wheel && pip3 install -r /tmp/requirements.txt \
@@ -58,11 +65,13 @@ RUN apt-get update \
 ################################################################################
 # builder
 ################################################################################
-FROM ubuntu:20.04 as builder
+#FROM ubuntu:20.04 as builder
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu20.04 as builder
 
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list;
 
-RUN apt-get update \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https \
     && apt-get install -y --no-install-recommends curl ca-certificates gnupg patch
 
 # nodejs
@@ -86,7 +95,8 @@ RUN sed -i 's#app/locale/#novnc/app/locale/#' /src/web/dist/static/novnc/app/ui.
 ################################################################################
 # builder_rdp
 ################################################################################
-FROM ubuntu:20.04 as builder_rdp
+#FROM ubuntu:20.04 as builder_rdp
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu20.04 as builder_rdp
 
 # Install packages
 
@@ -133,7 +143,8 @@ COPY rootfs /
 RUN ln -sf /usr/local/lib/web/frontend/static/websockify /usr/local/lib/web/frontend/static/novnc/utils/websockify && \
 	chmod +x /usr/local/lib/web/frontend/static/websockify/run
 
-RUN apt-get update -q && \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https && \
     apt-get upgrade -yq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq crudini pulseaudio uuid-runtime xrdp locales && \
     rm -rf /var/lib/apt/lists/*
@@ -154,7 +165,8 @@ RUN mkdir /var/run/dbus && \
 # apt-get update' returned a non-zero code: 100
 # https://stackoverflow.com/questions/38002543/apt-get-update-returned-a-non-zero-code-100
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - 
-RUN apt-get update -q && apt-get install -y apt-transport-https && \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https && \
     apt-get upgrade -yq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq wget curl git g++ build-essential vim sudo lsb-release locales bash-completion tzdata gosu && \
     rm -rf /var/lib/apt/lists/*
@@ -184,7 +196,8 @@ ARG INSTALL_PACKAGE=desktop
 
 # rosdep initを除いたもの
 ###
-RUN apt-get update -q && \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get update -q && apt-get install -y apt-transport-https && \
     apt-get install -y curl gnupg2 lsb-release && \
     curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
@@ -233,6 +246,7 @@ RUN gosu ubuntu pip3 install werkzeug==2.0.3
 COPY ./ai-robot-book.sh /ai-robot-book.sh
 RUN mkdir -p /tmp/ros_setup_scripts_ubuntu && mv /ai-robot-book.sh /tmp/ros_setup_scripts_ubuntu/ && \
     gosu ubuntu /tmp/ros_setup_scripts_ubuntu/ai-robot-book.sh
+
 
 EXPOSE 80
 WORKDIR /root
