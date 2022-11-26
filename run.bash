@@ -11,7 +11,7 @@ docker run \
 -e PULSE_SERVER=unix:/tmp/pulse/native \
 -v /run/user/$(id -u)/pulse/native:/tmp/pulse/native \
 -v ~/.config/pulse/cookie:/tmp/pulse/cookie:ro \
--v /media/sado-taro/E4A05004A04FDBA4:/mnt \
+-v /mnt/datas:/mnt \
 --name ai_robot_book \
 -p 15900:5900 \
 -p 6080:80 \
